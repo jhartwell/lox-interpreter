@@ -13,3 +13,6 @@ pom.xml.asc
 .nrepl-port
 .cpcache/
 deps/
+.DS_Store
+.clj-kondo/*
+.lsp/*
