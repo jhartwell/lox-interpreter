@@ -8,6 +8,7 @@
   (binding [*out* *err*]
     (println msg)))
 
+(defn error? [] @has-error?)
 
 (defn exit-code []
   (if @has-error?

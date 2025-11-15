@@ -15,14 +15,16 @@
   (toString [_] (format "%s %s %s" (-> type name (cstr/replace #"-" "_") cstr/upper-case) (p/fmt lexeme) (if (nil? literal) "null" literal))))
 
 (defn handle-string [contents line]
-  (let [[s line] (reduce (fn [[s l] c]
+  (let [#_ #_[s line] (reduce (fn [[s l] c]
                     [(str s c) (if (= c \newline) (inc l) l)])
                   ["" line]
                   (take-while #(not= % \") contents))
-        remainder (->> contents
-                       (drop-while #(not= % \")))
+#_ #_        remainder (->> contents
+                            (drop-while #(not= % \")))
+        [s remainder] (split-with #(not= % \") contents)
+        string-value (cstr/join s)
         terminated? (= (first remainder) \")]
-    {:token (->Token :string (format "\"%s\"" s)  s)
+    {:token (->Token :string (format "\"%s\"" string-value)  string-value)
      :remainder (rest remainder)
      :line line
      :terminated? terminated?}))
@@ -36,12 +38,14 @@
   (drop 1 (drop-while #(not= % \newline) contents)))
 
 (defn handle-number [ch contents]
-  (let [lhs (cstr/join "" (take-while Character/isDigit contents))
-        remainder (drop-while Character/isDigit contents)
+  (let [[lhs remainder] (split-with Character/isDigit contents)
         rhs? (= \. (first remainder))
-        number (cond-> (str ch lhs)
-                 rhs? (str "." (cstr/join "" (take-while Character/isDigit (rest remainder)))))]
-    {:remainder (drop-while Character/isDigit (if rhs? (rest remainder) remainder))
+        [rhs remainder] (if rhs?
+                          (split-with Character/isDigit (rest remainder))
+                          ["" remainder])
+        number (cond-> (str ch (cstr/join lhs))
+                 rhs? (str "." (cstr/join rhs)))]
+    {:remainder remainder
      :number number}))
 
 (def reserved-words #{"and"
@@ -66,9 +70,8 @@
                                 (or (Character/isLetter c)
                                     (Character/isDigit c)
                                     (= c \_))))
-        ident (cstr/join (take-while is-letter? contents))
-        remainder (drop-while is-letter? contents)]
-    {:identifier (str ch ident)
+        [ident remainder] (split-with is-letter? contents)]
+    {:identifier (str ch (cstr/join ident))
      :remainder remainder}))
 
 (defn create-identifier-token [ident]
